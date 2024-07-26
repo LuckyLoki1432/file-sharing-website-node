@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Sharing Website</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+            text-align: left;
+        }
+        input[type="file"], input[type="text"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 10px;
+        }
+        .link {
+            color: #007bff;
+            text-decoration: none;
+            margin: 10px 0;
+            display: block;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File Sharing Website</h1>
+        <p id="welcomeMessage"></p>
+        <form id="uploadForm">
+            <label for="file">Select a file:</label>
+            <input type="file" id="file" name="file">
+            <label for="text">Add some text (optional):</label>
+            <textarea id="text" name="text" rows="4"></textarea>
+            <button type="submit">Upload</button>
+        </form>
+        <form id="retrieveForm" style="margin-top: 30px;">
+            <label for="code">Enter the code to retrieve file:</label>
+            <input type="text" id="code" name="code">
+            <button type="submit">Retrieve</button>
+        </form>
+        <div id="error" class="error"></div>
+        <div id="fileInfo"></div>
+        <a href="/login.html" class="link">Login</a>
+        <a href="/register.html" class="link">Register</a>
+        <button id="logoutButton" style="display: none;">Logout</button>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const response = await fetch('/api/current-user');
+            if (response.ok) {
+                const user = await response.json();
+                document.getElementById('welcomeMessage').innerText = `Welcome, ${user.username}!`;
+                document.getElementById('logoutButton').style.display = 'block';
+            }
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('file');
+            if (fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            }
+            const text = document.getElementById('text').value;
+            formData.append('text', text);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.text();
+            if (response.ok) {
+                alert(`Upload successful! Your code is: ${result}`);
+            } else {
+                document.getElementById('error').innerText = result;
+            }
+        });
+
+        document.getElementById('retrieveForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('code').value;
+            const response = await fetch(`/api/retrieve/${code}`);
+            const result = await response.json();
+
+            if (response.ok) {
+                const fileInfoDiv = document.getElementById('fileInfo');
+                fileInfoDiv.innerHTML = `
+                    <p>Text: ${result.text || 'No text provided'}</p>
+                    <a href="/api/download/${code}" download>Download File</a>
+                `;
+            } else {
+                document.getElementById('error').innerText = 'File not found';
+            }
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', async () => {
+            const response = await fetch('/api/logout', { method: 'POST' });
+            if (response.ok) {
+                alert('Logged out successfully');
+                window.location.reload();
+            }
+        });
+    </script>
+</body>
+</html>
